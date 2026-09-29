@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local datasets
+data/*.csv
+data/*.parquet
+!data/.gitkeep
+
+# Generated artifacts
+results/**/*.csv
+results/**/*.png
+results/**/*.pkl
+results/**/*.keras
+results/**/*.json
+!results/**/.gitkeep
