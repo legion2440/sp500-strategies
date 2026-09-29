@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import json
-
 import joblib
 import matplotlib.pyplot as plt
 import numpy as np
@@ -11,7 +9,13 @@ from sklearn.inspection import permutation_importance
 from sklearn.metrics import accuracy_score, log_loss, roc_auc_score
 
 from scripts.config import CV_DIR, FEATURES_FILE, MODEL_DIR, RANDOM_STATE, TEST_START, ensure_directories
-from scripts.cross_validation import assert_temporal_folds, expanding_date_splits, fold_indices, unique_dates
+from scripts.cross_validation import (
+    assert_temporal_folds,
+    expanding_date_splits,
+    fold_indices,
+    save_cv_plots,
+    unique_dates,
+)
 from scripts.features_engineering import FEATURE_COLUMNS, split_train_test
 
 
@@ -28,8 +32,13 @@ def _feature_importance(estimator, X_val: pd.DataFrame, y_val: pd.Series) -> pd.
     model = estimator.named_steps["model"]
     if "pca" in estimator.named_steps:
         result = permutation_importance(
-            estimator, X_val, y_val, scoring="roc_auc", n_repeats=3,
-            random_state=RANDOM_STATE, n_jobs=-1,
+            estimator,
+            X_val,
+            y_val,
+            scoring="roc_auc",
+            n_repeats=3,
+            random_state=RANDOM_STATE,
+            n_jobs=-1,
         )
         return pd.Series(result.importances_mean, index=X_val.columns)
 
@@ -39,8 +48,13 @@ def _feature_importance(estimator, X_val: pd.DataFrame, y_val: pd.Series) -> pd.
         return pd.Series(model.feature_importances_, index=X_val.columns)
 
     result = permutation_importance(
-        estimator, X_val, y_val, scoring="roc_auc", n_repeats=3,
-        random_state=RANDOM_STATE, n_jobs=-1,
+        estimator,
+        X_val,
+        y_val,
+        scoring="roc_auc",
+        n_repeats=3,
+        random_state=RANDOM_STATE,
+        n_jobs=-1,
     )
     return pd.Series(result.importances_mean, index=X_val.columns)
 
@@ -52,6 +66,8 @@ def main() -> None:
     train = train.loc[train["target"].notna()].copy()
     X = train[FEATURE_COLUMNS]
     y = train["target"].astype(int)
+
+    save_cv_plots(train)
 
     selected = joblib.load(MODEL_DIR / "selected_model.pkl")
     folds = expanding_date_splits(unique_dates(train))
