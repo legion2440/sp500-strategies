@@ -42,7 +42,7 @@ The candidate pipelines use median imputation. Linear models additionally use st
 
 ## Cross-validation
 
-Model selection uses a date-based expanding time-series split with {model_meta["n_folds"]} folds. The first training window contains at least 504 trading days (>2 years), validation always follows training, and the test period beginning at `{model_meta["test_start"]}` is excluded from model selection.
+Model selection uses a date-based expanding time-series split with {model_meta["n_folds"]} folds. The first training window contains at least 505 trading days (>2 years), validation always follows training, and the test period beginning at `{model_meta["test_start"]}` is excluded from model selection.
 
 Both required CV visualizations are generated at:
 
@@ -60,7 +60,7 @@ Fold metrics and feature importance are written to:
 
 The main comparison includes binary long-only, ternary long/short, probability-weighted long-only, and top-10 / bottom-10 stock picking.
 
-Daily gross exposure is normalized so `sum(abs(weights)) = 1`. The PnL contribution for a signal created on day `D` is `weight(D, i) * return(D+1, D+2, i)`.
+Daily gross exposure is normalized to $1 when positions are open; any residual allocation is zero-return cash. The PnL contribution for a signal created on day `D` is `weight(D, i) * return(D+1, D+2, i)`, and daily PnL is summed rather than reinvested.
 
 The primary plotted strategy is `stock_picking_10`.
 
