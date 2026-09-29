@@ -62,15 +62,15 @@ def main() -> None:
     results.to_csv(STRATEGY_DIR / "results.csv", index=False)
 
     primary = "stock_picking_10"
-    primary_pnl = (1.0 + daily[primary].fillna(0.0)).cumprod() - 1.0
-    benchmark_pnl = (1.0 + daily["sp500_return"].fillna(0.0)).cumprod() - 1.0
+    primary_pnl = daily[primary].fillna(0.0).cumsum()
+    benchmark_pnl = daily["sp500_return"].fillna(0.0).cumsum()
 
     fig, ax = plt.subplots(figsize=(12, 6))
     ax.plot(primary_pnl.index, primary_pnl.values, label=primary)
     ax.plot(benchmark_pnl.index, benchmark_pnl.values, label="S&P 500")
     ax.axvline(boundary, linestyle="--", label="Train / test split")
     ax.set_xlabel("Date")
-    ax.set_ylabel("Cumulative PnL")
+    ax.set_ylabel("Cumulative PnL ($ per $1 daily capital)")
     ax.set_title("Strategy vs S&P 500")
     ax.legend()
     fig.tight_layout()
@@ -79,8 +79,9 @@ def main() -> None:
 
     metadata = {
         "primary_strategy": primary,
-        "capital_rule": "sum(abs(weights)) = 1 per trading day",
+        "capital_rule": "$1 gross capital allocated independently each trading day",
         "pnl_formula": "weight(D,i) * return(D+1,D+2,i)",
+        "aggregation": "daily PnL is summed, not reinvested",
         "test_start": TEST_START,
     }
     (STRATEGY_DIR / "backtest_metadata.json").write_text(

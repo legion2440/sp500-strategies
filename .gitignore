@@ -25,4 +25,6 @@ results/**/*.png
 results/**/*.pkl
 results/**/*.keras
 results/**/*.json
+results/**/*.txt
+results/**/*.md
 !results/**/.gitkeep
