@@ -176,7 +176,7 @@ Fold 3:           [ TRAIN -------- ] [ VAL ]
 Both enforce:
 
 - 10 folds;
-- at least 504 trading days in each training window;
+- at least 505 trading days in each training window;
 - validation strictly after training;
 - no train/validation date overlap;
 - no validation date inside the 2017+ test period;
@@ -250,7 +250,7 @@ PnL follows the predicted interval:
 PnL(D, i) = weight(D, i) * return(D+1, D+2, i)
 ```
 
-The default plot compares the stock-picking strategy and S&P 500 cumulative PnL on the same axis and marks the train/test boundary.
+The default plot compares the stock-picking strategy and S&P 500 cumulative PnL on the same axis and marks the train/test boundary. Because the subject assumes the same $1 of capital each day, daily PnL is summed rather than reinvested.
 
 Metrics:
 
