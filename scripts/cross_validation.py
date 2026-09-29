@@ -35,6 +35,7 @@ def expanding_date_splits(
     remaining = len(dates) - min_train_days
     val_size = max(1, remaining // n_splits)
     folds: list[DateFold] = []
+
     for i in range(n_splits):
         train_end = min_train_days + i * val_size
         val_end = len(dates) if i == n_splits - 1 else min(train_end + val_size, len(dates))
@@ -42,8 +43,8 @@ def expanding_date_splits(
             continue
         folds.append(DateFold(dates[:train_end], dates[train_end:val_end]))
 
-    if len(folds) < n_splits:
-        raise ValueError(f"Generated only {len(folds)} folds, expected {n_splits}")
+    if len(folds) != n_splits:
+        raise ValueError(f"Generated {len(folds)} folds, expected {n_splits}")
     return folds
 
 
@@ -52,26 +53,33 @@ def blocking_date_splits(
     n_splits: int = N_SPLITS,
     min_train_days: int = MIN_TRAIN_DAYS,
 ) -> list[DateFold]:
+    """Rolling fixed-width blocking CV.
+
+    Every fold contains a contiguous training block with at least min_train_days
+    followed immediately by a non-overlapping validation block. Training blocks
+    may overlap across folds; dates never overlap inside the same fold.
+    """
     dates = pd.DatetimeIndex(dates).sort_values()
-    block_size = min_train_days + max(1, (len(dates) - n_splits * min_train_days) // n_splits)
-    if block_size <= min_train_days or len(dates) < n_splits * (min_train_days + 1):
-        block_size = len(dates) // n_splits
-    if block_size <= min_train_days:
+    remaining = len(dates) - min_train_days
+    if remaining < n_splits:
         raise ValueError("Not enough unique dates for requested blocking CV")
 
-    folds: list[DateFold] = []
-    for i in range(n_splits):
-        start = i * block_size
-        end = len(dates) if i == n_splits - 1 else min((i + 1) * block_size, len(dates))
-        block = dates[start:end]
-        if len(block) <= min_train_days:
-            continue
-        folds.append(DateFold(block[:min_train_days], block[min_train_days:]))
+    val_size = max(1, remaining // n_splits)
+    max_start = len(dates) - min_train_days - val_size
+    starts = np.linspace(0, max_start, n_splits, dtype=int)
 
-    if len(folds) < n_splits:
-        raise ValueError(
-            "Blocking CV cannot satisfy both >=10 folds and >2y train history with this date range"
-        )
+    folds: list[DateFold] = []
+    for start in starts:
+        train_end = start + min_train_days
+        val_end = min(train_end + val_size, len(dates))
+        train_dates = dates[start:train_end]
+        validation_dates = dates[train_end:val_end]
+        if len(train_dates) < min_train_days or validation_dates.empty:
+            continue
+        folds.append(DateFold(train_dates, validation_dates))
+
+    if len(folds) != n_splits:
+        raise ValueError(f"Generated {len(folds)} blocking folds, expected {n_splits}")
     return folds
 
 
@@ -97,8 +105,20 @@ def assert_temporal_folds(folds: list[DateFold], test_start: str) -> None:
 def plot_folds(folds: list[DateFold], path, title: str) -> None:
     fig, ax = plt.subplots(figsize=(12, 5))
     for i, fold in enumerate(folds):
-        ax.scatter(fold.train_dates, np.full(len(fold.train_dates), i), marker="s", s=5, label="Train" if i == 0 else None)
-        ax.scatter(fold.validation_dates, np.full(len(fold.validation_dates), i), marker="s", s=5, label="Validation" if i == 0 else None)
+        ax.scatter(
+            fold.train_dates,
+            np.full(len(fold.train_dates), i),
+            marker="s",
+            s=5,
+            label="Train" if i == 0 else None,
+        )
+        ax.scatter(
+            fold.validation_dates,
+            np.full(len(fold.validation_dates), i),
+            marker="s",
+            s=5,
+            label="Validation" if i == 0 else None,
+        )
     ax.set_title(title)
     ax.set_xlabel("Date")
     ax.set_ylabel("Fold")
@@ -114,4 +134,4 @@ def save_cv_plots(train_df: pd.DataFrame) -> None:
     expanding = expanding_date_splits(dates)
     blocking = blocking_date_splits(dates)
     plot_folds(expanding, CV_DIR / "timeseries_cv.png", "Expanding Time Series Cross-Validation")
-    plot_folds(blocking, CV_DIR / "blocking_cv.png", "Blocking Time Series Cross-Validation")
+    plot_folds(blocking, CV_DIR / "blocking_cv.png", "Rolling Blocking Time Series Cross-Validation")

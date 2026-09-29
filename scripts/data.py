@@ -13,6 +13,7 @@ def _normalize_columns(df: pd.DataFrame) -> pd.DataFrame:
         "symbol": "ticker",
         "vol.": "volume",
         "adj_close": "close",
+        "close/last": "close",
     }
     return out.rename(columns={k: v for k, v in aliases.items() if k in out.columns})
 
@@ -26,6 +27,11 @@ def load_stocks(path=STOCKS_FILE) -> pd.DataFrame:
 
     df["date"] = pd.to_datetime(df["date"], errors="raise")
     numeric = ["open", "high", "low", "close", "volume"]
+    for col in numeric:
+        if df[col].dtype == object:
+            df[col] = (
+                df[col].astype(str).str.replace(",", "", regex=False).str.replace("$", "", regex=False)
+            )
     df[numeric] = df[numeric].apply(pd.to_numeric, errors="coerce")
     df = df.dropna(subset=["date", "ticker", "close"])
     df["ticker"] = df["ticker"].astype(str).str.strip()
